@@ -188,15 +188,18 @@ def setup(app: Any) -> None:
         except Exception as e:
             plugin._flash_status(f"Export failed: {e}")
 
-    # Register in IngeTrazo menu
-    if hasattr(app, "add_menu"):
-        sub = app.add_menu("Export")
-        if sub is not None:
-            sub.addAction("Export 3D HTML...", on_export)
-    elif hasattr(app, "add_menu_action"):
+    # Register in IngeTrazo menu via ExtensionApp API
+    if hasattr(app, "add_menu_action"):
         app.add_menu_action(
-            "Export: 3D HTML Viewer...",
+            "Export 3D HTML...",
             on_export,
             "Ctrl+Shift+H",
             "Export completed 3D scene to standalone Three.js HTML",
         )
+    elif hasattr(app, "add_menu"):
+        sub = app.add_menu("Export HTML")
+        if sub is not None:
+            sub.addAction("Export 3D HTML...", on_export)
+
+    if hasattr(app, "register_tool"):
+        app.register_tool(plugin)
