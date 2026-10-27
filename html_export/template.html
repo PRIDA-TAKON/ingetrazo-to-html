@@ -288,6 +288,7 @@
   <div class="stats-card" id="stats-card">
     <div class="stats-row"><span>Faces / Triangles:</span><span class="val" id="stat-triangles">-</span></div>
     <div class="stats-row"><span>IngeTrazo Edges:</span><span class="val" id="stat-edges">-</span></div>
+    <div class="stats-row"><span>Textures:</span><span class="val" id="stat-textures">-</span></div>
     <div class="stats-row"><span>Vertices:</span><span class="val" id="stat-vertices">-</span></div>
     <div class="stats-row"><span>Dimensions (W×L×H):</span><span class="val" id="stat-dims">-</span></div>
     <div class="stats-row"><span>Center Datum:</span><span class="val" id="stat-center">-</span></div>
@@ -342,8 +343,6 @@
 
     const axesHelper = new THREE.AxesHelper(2.5);
     // Custom colors: X = Red, Y = Green, Z = Blue (IngeTrazo / CAD standard)
-    const colors = axesHelper.geometry.attributes.color;
-    axesHelper.material.linewidth = 2;
     gizmoScene.add(axesHelper);
 
     // OrbitControls
@@ -354,7 +353,6 @@
     controls.maxPolarAngle = Math.PI - 0.02;
 
     // Lighting setup matching IngeTrazo matte architectural shading:
-    // Fixed sun light from +X, -Y, +Z with subtle diffuse term (0.62..1.0)
     const ambientLight = new THREE.AmbientLight(0xffffff, 0.72);
     scene.add(ambientLight);
 
@@ -371,62 +369,133 @@
     function createGroundGrid(size = 50, divisions = 50, col1 = 0x94a3b8, col2 = 0xcbd5e1) {
       if (gridHelper) scene.remove(gridHelper);
       gridHelper = new THREE.GridHelper(size, divisions, col1, col2);
-      // Three.js GridHelper is XZ by default; rotate 90 deg around X to lie flat on XY plane
       gridHelper.rotation.x = Math.PI / 2;
       gridHelper.position.z = 0;
       scene.add(gridHelper);
     }
 
-    // Geometry Construction
-    let modelMesh, edgeLineMesh, modelBounds, modelCenter, modelRadius;
-    let originalColors = null;
+    // Geometry Construction & Texture Loading
+    let modelGroup = new THREE.Group();
+    scene.add(modelGroup);
+
+    let partEntries = [];
+    let edgeLineMesh, modelBounds, modelCenter, modelRadius;
+
+    // Load Textures from Base64 Data URIs
+    const textureLoader = new THREE.TextureLoader();
+    const loadedTextures = {};
+
+    function initTextures() {
+      const texEntries = Object.entries(MODEL_PAYLOAD.textures || {});
+      for (const [id, dataUri] of texEntries) {
+        const tex = textureLoader.load(dataUri, () => {
+          renderer.render(scene, camera);
+        });
+        tex.wrapS = THREE.RepeatWrapping;
+        tex.wrapT = THREE.RepeatWrapping;
+        loadedTextures[id] = tex;
+      }
+    }
 
     function buildModel() {
-      const vertices = MODEL_PAYLOAD.vertices || [];
-      const colors = MODEL_PAYLOAD.colors || [];
+      initTextures();
+
+      const parts = MODEL_PAYLOAD.parts || [];
       const edges = MODEL_PAYLOAD.edges || [];
 
-      if (!vertices || vertices.length === 0) {
-        console.warn('No vertices in model payload');
-        return;
+      // Calculate overall bounds
+      const bbox = new THREE.Box3();
+
+      if (parts.length > 0) {
+        for (const p of parts) {
+          if (!p.vertices || p.vertices.length === 0) continue;
+
+          const geom = new THREE.BufferGeometry();
+          geom.setAttribute('position', new THREE.Float32BufferAttribute(p.vertices, 3));
+
+          if (p.uvs && p.uvs.length > 0) {
+            geom.setAttribute('uv', new THREE.Float32BufferAttribute(p.uvs, 2));
+          }
+
+          if (p.colors && p.colors.length > 0 && !p.textureId) {
+            geom.setAttribute('color', new THREE.Float32BufferAttribute(p.colors, 3));
+          }
+
+          geom.computeVertexNormals();
+          geom.computeBoundingBox();
+          bbox.union(geom.boundingBox);
+
+          // Build Material
+          const hasTex = (p.textureId && loadedTextures[p.textureId]);
+          const baseColor = p.color ? new THREE.Color(p.color[0], p.color[1], p.color[2]) : new THREE.Color(0xf5f2ec);
+
+          const mat = new THREE.MeshStandardMaterial({
+            map: hasTex ? loadedTextures[p.textureId] : null,
+            color: hasTex ? 0xffffff : baseColor,
+            roughness: 0.88,
+            metalness: 0.02,
+            side: THREE.DoubleSide,
+            polygonOffset: true,
+            polygonOffsetFactor: 1,
+            polygonOffsetUnits: 1,
+            transparent: (p.opacity < 0.99),
+            opacity: p.opacity !== undefined ? p.opacity : 1.0,
+          });
+
+          const mesh = new THREE.Mesh(geom, mat);
+          modelGroup.add(mesh);
+
+          partEntries.push({
+            mesh: mesh,
+            originalMap: hasTex ? loadedTextures[p.textureId] : null,
+            originalColor: baseColor,
+            originalOpacity: p.opacity !== undefined ? p.opacity : 1.0,
+            hasTexture: hasTex,
+          });
+        }
+      } else if (MODEL_PAYLOAD.vertices && MODEL_PAYLOAD.vertices.length > 0) {
+        // Fallback for simple flat models
+        const geom = new THREE.BufferGeometry();
+        geom.setAttribute('position', new THREE.Float32BufferAttribute(MODEL_PAYLOAD.vertices, 3));
+        if (MODEL_PAYLOAD.colors) {
+          geom.setAttribute('color', new THREE.Float32BufferAttribute(MODEL_PAYLOAD.colors, 3));
+        }
+        geom.computeVertexNormals();
+        geom.computeBoundingBox();
+        bbox.union(geom.boundingBox);
+
+        const mat = new THREE.MeshStandardMaterial({
+          roughness: 0.88,
+          metalness: 0.02,
+          vertexColors: Boolean(MODEL_PAYLOAD.colors && MODEL_PAYLOAD.colors.length > 0),
+          color: 0xffffff,
+          side: THREE.DoubleSide,
+          polygonOffset: true,
+          polygonOffsetFactor: 1,
+          polygonOffsetUnits: 1
+        });
+        const mesh = new THREE.Mesh(geom, mat);
+        modelGroup.add(mesh);
+        partEntries.push({
+          mesh: mesh,
+          originalMap: null,
+          originalColor: new THREE.Color(0xf5f2ec),
+          originalOpacity: 1.0,
+          hasTexture: false
+        });
       }
 
-      // 1. Build Solid Faces
-      const geom = new THREE.BufferGeometry();
-      geom.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+      modelBounds = bbox;
+      modelCenter = new THREE.Vector3();
+      bbox.getCenter(modelCenter);
 
-      if (colors && colors.length === vertices.length) {
-        originalColors = new Float32Array(colors);
-        geom.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
-      }
-
-      geom.computeVertexNormals();
-      geom.computeBoundingBox();
-      geom.computeBoundingSphere();
-
-      modelBounds = geom.boundingBox;
-      modelCenter = geom.boundingSphere.center;
-      modelRadius = Math.max(geom.boundingSphere.radius, 1.0);
+      const sphere = new THREE.Sphere();
+      bbox.getBoundingSphere(sphere);
+      modelRadius = Math.max(sphere.radius, 1.0);
 
       // Create ground grid adapted to model scale
       const gridSize = Math.max(Math.ceil(modelRadius * 3 / 10) * 10, 20);
       createGroundGrid(gridSize, gridSize, 0x94a3b8, 0xcbd5e1);
-
-      // IngeTrazo Matte Architectural Material
-      // polygonOffset ensures lines never z-fight with face polygons!
-      const mat = new THREE.MeshStandardMaterial({
-        roughness: 0.88,
-        metalness: 0.02,
-        vertexColors: (colors.length > 0),
-        color: (colors.length === 0) ? 0xf5f2ec : 0xffffff,
-        side: THREE.DoubleSide,
-        polygonOffset: true,
-        polygonOffsetFactor: 1,
-        polygonOffsetUnits: 1
-      });
-
-      modelMesh = new THREE.Mesh(geom, mat);
-      scene.add(modelMesh);
 
       // 2. Build Crisp IngeTrazo Edge Lines (#212b3b)
       let edgeGeom;
@@ -434,8 +503,10 @@
         edgeGeom = new THREE.BufferGeometry();
         edgeGeom.setAttribute('position', new THREE.Float32BufferAttribute(edges, 3));
       } else {
-        // Fallback to high-definition crease edges if no edges extracted
-        edgeGeom = new THREE.EdgesGeometry(geom, 15);
+        // Fallback to bounding edges if no extracted edges
+        const fullGeom = new THREE.BufferGeometry();
+        fullGeom.setAttribute('position', new THREE.Float32BufferAttribute(MODEL_PAYLOAD.vertices || [], 3));
+        edgeGeom = new THREE.EdgesGeometry(fullGeom, 15);
       }
 
       const edgeMat = new THREE.LineBasicMaterial({
@@ -452,7 +523,7 @@
       resetCamera();
 
       // Update Info Stats
-      updateStatsUI(geom, edges);
+      updateStatsUI(edges);
     }
 
     function resetCamera() {
@@ -558,34 +629,33 @@
         edgeLineMesh.material.color.setHex(st.edgeColor);
       }
 
-      // Update mesh shading and transparency
-      if (modelMesh) {
-        const geom = modelMesh.geometry;
-        const count = geom.attributes.position.count;
+      // Update mesh shading and transparency across all parts
+      for (const entry of partEntries) {
+        const mat = entry.mesh.material;
 
         if (st.mode === "hidden_line") {
-          modelMesh.material.vertexColors = false;
-          modelMesh.material.color.setHex(0xffffff);
-          modelMesh.material.transparent = false;
-          modelMesh.material.opacity = 1.0;
+          mat.map = null;
+          mat.color.setHex(0xffffff);
+          mat.transparent = false;
+          mat.opacity = 1.0;
         } else if (st.mode === "monochrome") {
-          modelMesh.material.vertexColors = false;
-          modelMesh.material.color.setHex(0xf5f2ec); // Default warm plaster
-          modelMesh.material.transparent = false;
-          modelMesh.material.opacity = 1.0;
+          mat.map = null;
+          mat.color.setHex(0xf5f2ec); // Default warm plaster
+          mat.transparent = false;
+          mat.opacity = 1.0;
         } else if (st.mode === "xray") {
-          modelMesh.material.vertexColors = (originalColors !== null);
-          modelMesh.material.color.setHex(0xffffff);
-          modelMesh.material.transparent = true;
-          modelMesh.material.opacity = st.opacity;
+          mat.map = entry.originalMap;
+          mat.color.copy(entry.originalColor);
+          mat.transparent = true;
+          mat.opacity = st.opacity;
         } else {
-          // Shaded (Native IngeTrazo)
-          modelMesh.material.vertexColors = (originalColors !== null);
-          modelMesh.material.color.setHex(0xffffff);
-          modelMesh.material.transparent = false;
-          modelMesh.material.opacity = 1.0;
+          // Shaded (Native IngeTrazo with textures)
+          mat.map = entry.originalMap;
+          mat.color.copy(entry.originalColor);
+          mat.transparent = (entry.originalOpacity < 0.99);
+          mat.opacity = entry.originalOpacity;
         }
-        modelMesh.material.needsUpdate = true;
+        mat.needsUpdate = true;
       }
 
       // Update Ground Grid
@@ -602,10 +672,11 @@
       document.getElementById('btn-info').classList.toggle('active', card.classList.contains('visible'));
     }
 
-    function updateStatsUI(geom, edges) {
-      const triCount = (geom.attributes.position.count / 3).toLocaleString();
+    function updateStatsUI(edges) {
+      const triCount = (MODEL_PAYLOAD.faceCount || 0).toLocaleString();
       const edgeCount = (edges ? edges.length / 6 : 0).toLocaleString();
-      const vertCount = geom.attributes.position.count.toLocaleString();
+      const vertCount = (MODEL_PAYLOAD.vertexCount || 0).toLocaleString();
+      const texCount = (MODEL_PAYLOAD.textureCount || 0).toLocaleString();
       const dx = (modelBounds.max.x - modelBounds.min.x).toFixed(2);
       const dy = (modelBounds.max.y - modelBounds.min.y).toFixed(2);
       const dz = (modelBounds.max.z - modelBounds.min.z).toFixed(2);
@@ -615,6 +686,7 @@
 
       document.getElementById('stat-triangles').textContent = triCount;
       document.getElementById('stat-edges').textContent = edgeCount;
+      document.getElementById('stat-textures').textContent = texCount;
       document.getElementById('stat-vertices').textContent = vertCount;
       document.getElementById('stat-dims').textContent = `${dx}m × ${dy}m × ${dz}m`;
       document.getElementById('stat-center').textContent = `(${cx}, ${cy}, ${cz})`;
