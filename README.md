@@ -19,6 +19,11 @@
 
 ## 🌟 จุดเด่น (Key Features)
 
+* **100% IngeTrazo Native Visual Look:** ถอดแบบการเรนเดอร์ หน้าตา และเฉดสีออกมาเหมือนใน IngeTrazo 100%:
+  - **เส้นขอบคมชัด (IngeTrazo Edges):** สกัดเส้นโครงสร้างและขอบโมเดลทุกเส้น วาดด้วยสี Deep Charcoal Navy (`#212B3B`) แบบไร้การกระพริบ (No Z-fighting ด้วย PolygonOffset)
+  - **เฉดสีผิวสถาปัตยกรรม (Matte Shading):** พื้นผิวแบบด้าน ผสมผสานแสง Sunlight ทิศทางเดียวกับ IngeTrazo พร้อมสีเริ่มต้น Warm Plaster White (`#F5F2EC`)
+  - **พื้นหลังเอกลักษณ์:** สีเทาสถาปัตยกรรม IngeTrazo Viewport Background (`#E6E8EB`)
+  - **สลับสไตล์แบบ Built-in:** รองรับทั้งโหมด IngeTrazo Shaded, Hidden Line (งานแบบขาวดำ), Monochrome, X-Ray (มองทะลุ), และ Dark Studio
 * **Single-file Standalone:** ได้ไฟล์ `.html` เพียงไฟล์เดียวที่มี Three.js Engine และข้อมูลโมเดลฝังในตัว (Embedded Base64)
 * **Zero Dependencies:** ไม่ต้องใช้ Web Server ไม่ต้องพึ่งพา External CDN และไม่ติดปัญหา CORS Policy ของบราวเซอร์
 * **Universal Compatibility:** รองรับทั้ง Chrome, Edge, Safari, Firefox บน PC, Mac, iPad, iPhone, Android

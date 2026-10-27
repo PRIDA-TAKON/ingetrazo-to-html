@@ -1,12 +1,18 @@
 """
-Exporter engine: Extracts 3D mesh geometry from IngeTrazo scene and generates
-standalone, self-contained Three.js HTML viewers.
+Exporter engine: Extracts 3D mesh geometry and exact polygon edge lines from IngeTrazo scene
+and generates standalone Three.js HTML viewers that match IngeTrazo's exact visual style.
 """
 
 from datetime import datetime
 import json
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Set, Tuple, Union
+
+
+# IngeTrazo Default Palette Constants
+INGETRAZO_DEFAULT_FRONT_COLOR = (0.96, 0.95, 0.925)   # Warm architectural plaster white
+INGETRAZO_EDGE_COLOR = (0.13, 0.17, 0.23)             # Deep charcoal navy (#212b3b)
+INGETRAZO_BG_COLOR = (0.90, 0.91, 0.92)               # Viewport background (#e6e8eb)
 
 
 def _extract_pt_coords(pt: Any) -> Tuple[float, float, float]:
@@ -23,10 +29,8 @@ def _extract_pt_coords(pt: Any) -> Tuple[float, float, float]:
 
 def _parse_color(color_attr: Any) -> Tuple[float, float, float]:
     """Normalizes color into float RGB tuple (0.0 to 1.0)."""
-    default_col = (0.88, 0.89, 0.92)
-
     if color_attr is None:
-        return default_col
+        return INGETRAZO_DEFAULT_FRONT_COLOR
 
     # Hex string e.g. "#ffffff" or "ffffff"
     if isinstance(color_attr, str):
@@ -38,7 +42,7 @@ def _parse_color(color_attr: Any) -> Tuple[float, float, float]:
                 b = int(s[4:6], 16) / 255.0
                 return (round(r, 3), round(g, 3), round(b, 3))
             except ValueError:
-                return default_col
+                return INGETRAZO_DEFAULT_FRONT_COLOR
 
     # Tuple / List
     if isinstance(color_attr, (tuple, list)) and len(color_attr) >= 3:
@@ -49,9 +53,9 @@ def _parse_color(color_attr: Any) -> Tuple[float, float, float]:
                 r, g, b = r / 255.0, g / 255.0, b / 255.0
             return (round(r, 3), round(g, 3), round(b, 3))
         except (ValueError, TypeError):
-            return default_col
+            return INGETRAZO_DEFAULT_FRONT_COLOR
 
-    return default_col
+    return INGETRAZO_DEFAULT_FRONT_COLOR
 
 
 def triangulate_polygon(pts: List[Any]) -> List[List[Any]]:
@@ -68,7 +72,6 @@ def triangulate_polygon(pts: List[Any]) -> List[List[Any]]:
 
 def collect_scene_faces(scene: Any) -> List[Any]:
     """Collects all renderable faces from IngeTrazo scene or raw face list."""
-    # If a list or generator was passed directly (e.g. testing)
     if isinstance(scene, (list, tuple)):
         return list(scene)
 
@@ -118,16 +121,72 @@ def collect_scene_faces(scene: Any) -> List[Any]:
     return faces
 
 
+def collect_scene_edges(scene: Any, faces: List[Any]) -> List[float]:
+    """
+    Collects unique line segments representing model edges matching IngeTrazo's edge look.
+    Returns flat list of coordinates [x1, y1, z1, x2, y2, z2, ...].
+    """
+    edge_set: Set[Tuple[Tuple[float, float, float], Tuple[float, float, float]]] = set()
+
+    # 1. Check if scene or mesh has native edges
+    mesh = getattr(scene, "mesh", None)
+    if mesh is not None and hasattr(mesh, "edges"):
+        try:
+            for e in mesh.edges:
+                p0 = _extract_pt_coords(e.a)
+                p1 = _extract_pt_coords(e.b)
+                p0_r = (round(p0[0], 4), round(p0[1], 4), round(p0[2], 4))
+                p1_r = (round(p1[0], 4), round(p1[1], 4), round(p1[2], 4))
+                if p0_r != p1_r:
+                    edge_key = (min(p0_r, p1_r), max(p0_r, p1_r))
+                    edge_set.add(edge_key)
+        except Exception:
+            pass
+
+    # 2. Extract boundary edges from all faces
+    for f in faces:
+        pts: List[Any] = []
+        if hasattr(f, "points"):
+            pts = list(f.points() if callable(f.points) else f.points)
+        elif hasattr(f, "vertices"):
+            pts = list(f.vertices() if callable(f.vertices) else f.vertices)
+        elif hasattr(f, "__iter__") and not isinstance(f, (str, bytes)):
+            pts = list(f)
+
+        if len(pts) >= 2:
+            n = len(pts)
+            for i in range(n):
+                try:
+                    p0 = _extract_pt_coords(pts[i])
+                    p1 = _extract_pt_coords(pts[(i + 1) % n])
+                    p0_r = (round(p0[0], 4), round(p0[1], 4), round(p0[2], 4))
+                    p1_r = (round(p1[0], 4), round(p1[1], 4), round(p1[2], 4))
+                    if p0_r != p1_r:
+                        edge_key = (min(p0_r, p1_r), max(p0_r, p1_r))
+                        edge_set.add(edge_key)
+                except Exception:
+                    continue
+
+    flat_edges: List[float] = []
+    for p0_r, p1_r in edge_set:
+        flat_edges.extend([
+            p0_r[0], p0_r[1], p0_r[2],
+            p1_r[0], p1_r[1], p1_r[2],
+        ])
+
+    return flat_edges
+
+
 def extract_mesh_payload(scene: Any) -> Dict[str, Any]:
     """
-    Extracts vertex positions, face colors, and bounding statistics from an IngeTrazo scene.
-    Returns payload dictionary ready for Three.js BufferGeometry.
+    Extracts vertex positions, face colors, exact edge lines, and bounding statistics
+    from an IngeTrazo scene matching its native visual appearance.
     """
     faces = collect_scene_faces(scene)
+    edge_lines = collect_scene_edges(scene, faces)
 
     positions: List[float] = []
     colors: List[float] = []
-
     face_count = 0
 
     for f in faces:
@@ -158,7 +217,7 @@ def extract_mesh_payload(scene: Any) -> Dict[str, Any]:
 
         # Extract color
         attrs = getattr(f, "attrs", {})
-        col = (0.88, 0.89, 0.92)
+        col = INGETRAZO_DEFAULT_FRONT_COLOR
         if isinstance(attrs, dict):
             col = _parse_color(attrs.get("color"))
         elif hasattr(f, "color"):
@@ -190,7 +249,9 @@ def extract_mesh_payload(scene: Any) -> Dict[str, Any]:
     return {
         "vertices": positions,
         "colors": colors,
+        "edges": edge_lines,
         "faceCount": face_count,
+        "edgeCount": len(edge_lines) // 6,
         "vertexCount": len(positions) // 3,
     }
 
@@ -202,7 +263,8 @@ def export_to_html(
     embed_threejs: bool = True,
 ) -> Dict[str, Any]:
     """
-    Exports the IngeTrazo scene into a standalone Three.js HTML file.
+    Exports the IngeTrazo scene into a standalone Three.js HTML file
+    faithfully reproducing IngeTrazo's native rendering style.
     """
     out_file = Path(output_path).resolve()
     out_file.parent.mkdir(parents=True, exist_ok=True)
@@ -257,5 +319,6 @@ def export_to_html(
         "file_size_bytes": file_size,
         "file_size_mb": round(file_size / (1024 * 1024), 2),
         "face_count": payload["faceCount"],
+        "edge_count": payload["edgeCount"],
         "vertex_count": payload["vertexCount"],
     }

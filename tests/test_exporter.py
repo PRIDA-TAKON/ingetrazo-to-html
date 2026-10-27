@@ -45,8 +45,8 @@ def test_color_parsing():
     # RGB 0.0 - 1.0
     assert _parse_color((0.2, 0.5, 0.8)) == (0.2, 0.5, 0.8)
 
-    # Fallback
-    assert _parse_color(None) == (0.88, 0.89, 0.92)
+    # Fallback to IngeTrazo default plaster off-white
+    assert _parse_color(None) == (0.96, 0.95, 0.925)
 
 
 def test_triangulation():
@@ -72,6 +72,8 @@ def test_extract_mesh_payload():
     assert payload["vertexCount"] == 9  # 3 triangles * 3 vertices
     assert len(payload["vertices"]) == 27  # 9 vertices * 3 coords (x,y,z)
     assert len(payload["colors"]) == 27    # 9 vertices * 3 rgb
+    assert payload["edgeCount"] == 6       # 6 unique deduplicated edge lines
+    assert len(payload["edges"]) == 36     # 6 edges * 2 endpoints * 3 coords
 
 
 def test_export_to_html():
