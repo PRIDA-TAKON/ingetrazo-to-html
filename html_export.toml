@@ -13,6 +13,7 @@ sha256 = "910a8e6b37a91d94337443bfb0ee0b10f2c57b8b49425eb93f8bb33e29ecc01f"
 
 ingetrazo = "0.5.7"
 tags = ["import-export", "rendering", "architecture"]
+screenshot = "html_export.png"
 
 [name]
 en = "Export 3D HTML Viewer"

@@ -12,7 +12,11 @@
 <p align="center">
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License MIT"></a>
   <a href="DESIGN.md"><img src="https://img.shields.io/badge/architecture-design%20doc-cyan.svg" alt="Design Doc"></a>
-  <img src="https://img.shields.io/badge/IngeTrazo-%3E%3D0.5.8-emerald.svg" alt="IngeTrazo Version">
+  <img src="https://img.shields.io/badge/IngeTrazo-%3E%3D0.5.7-emerald.svg" alt="IngeTrazo Version">
+</p>
+
+<p align="center">
+  <img src="screenshots/html_export.png" width="90%" alt="IngeTrazo 3D Web Viewer Preview" style="border-radius: 12px; box-shadow: 0 8px 32px rgba(0,0,0,0.15);" />
 </p>
 
 ---
