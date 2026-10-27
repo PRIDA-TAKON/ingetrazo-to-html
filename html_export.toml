@@ -1,0 +1,25 @@
+# Official IngeTrazo Extension Hub Catalog Entry
+# Place this file in ingelibre/ingetrazo-extensions/extensions/html_export.toml
+
+id = "html_export"
+version = "0.1.0"
+author = "PRIDA-TAKON"
+author_url = "https://github.com/PRIDA-TAKON"
+
+license = "MIT"
+repository = "https://github.com/PRIDA-TAKON/ingetrazo-to-html"
+download = "https://github.com/PRIDA-TAKON/ingetrazo-to-html/releases/download/v0.1.0/html_export.zip"
+sha256 = "910a8e6b37a91d94337443bfb0ee0b10f2c57b8b49425eb93f8bb33e29ecc01f"
+
+ingetrazo = "0.5.7"
+tags = ["import-export", "rendering", "architecture"]
+
+[name]
+en = "Export 3D HTML Viewer"
+es = "Exportar visor HTML 3D"
+pt = "Exportar visualizador HTML 3D"
+
+[summary]
+en = "Export completed 3D models with textures into standalone Three.js HTML viewers that open offline on any device."
+es = "Exporta modelos 3D terminados con texturas a visores HTML Three.js independientes que se abren sin conexión."
+pt = "Exporta modelos 3D concluídos com texturas em visualizadores HTML Three.js autônomos que abrem offline."

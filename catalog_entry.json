@@ -1,0 +1,19 @@
+{
+  "id": "html_export",
+  "name": "Export 3D HTML Viewer",
+  "version": "0.1.0",
+  "author": "PRIDA-TAKON",
+  "license": "MIT",
+  "description": "Export completed 3D architectural models with textures into standalone Three.js HTML viewers that open offline on any device.",
+  "min_ingetrazo_version": "0.5.7",
+  "repository": "https://github.com/PRIDA-TAKON/ingetrazo-to-html",
+  "download_url": "https://github.com/PRIDA-TAKON/ingetrazo-to-html/releases/download/v0.1.0/html_export.zip",
+  "sha256": "910a8e6b37a91d94337443bfb0ee0b10f2c57b8b49425eb93f8bb33e29ecc01f",
+  "tags": [
+    "import-export",
+    "rendering",
+    "architecture",
+    "html",
+    "threejs"
+  ]
+}
