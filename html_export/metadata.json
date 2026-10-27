@@ -5,5 +5,5 @@
   "author": "PRIDA-TAKON",
   "license": "MIT",
   "description": "Export completed 3D models from IngeTrazo into standalone Three.js HTML files",
-  "min_ingetrazo_version": "0.5.8"
+  "min_ingetrazo_version": "0.5.7"
 }
