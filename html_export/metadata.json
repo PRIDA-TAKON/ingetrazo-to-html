@@ -1,0 +1,9 @@
+{
+  "id": "html_export",
+  "name": "Export 3D HTML",
+  "version": "0.1.0",
+  "author": "PRIDA-TAKON",
+  "license": "MIT",
+  "description": "Export completed 3D models from IngeTrazo into standalone Three.js HTML files",
+  "min_ingetrazo_version": "0.5.8"
+}

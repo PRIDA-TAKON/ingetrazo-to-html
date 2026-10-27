@@ -1,0 +1,87 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" fill="none">
+  <defs>
+    <!-- Background Soft Glow -->
+    <radialGradient id="bgGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#0F172A" stop-opacity="1" />
+      <stop offset="100%" stop-color="#020617" stop-opacity="1" />
+    </radialGradient>
+
+    <!-- Isometric Face Gradients -->
+    <linearGradient id="topFace" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38BDF8" stop-opacity="0.25" />
+      <stop offset="100%" stop-color="#0284C7" stop-opacity="0.10" />
+    </linearGradient>
+
+    <linearGradient id="leftFace" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0284C7" stop-opacity="0.20" />
+      <stop offset="100%" stop-color="#0F172A" stop-opacity="0.40" />
+    </linearGradient>
+
+    <linearGradient id="rightFace" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#06B6D4" stop-opacity="0.22" />
+      <stop offset="100%" stop-color="#0F172A" stop-opacity="0.45" />
+    </linearGradient>
+
+    <!-- Line Gradients -->
+    <linearGradient id="primaryStroke" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38BDF8" />
+      <stop offset="50%" stop-color="#06B6D4" />
+      <stop offset="100%" stop-color="#3B82F6" />
+    </linearGradient>
+
+    <linearGradient id="accentBracket" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#22D3EE" />
+      <stop offset="100%" stop-color="#67E8F9" />
+    </linearGradient>
+
+    <!-- Drop Shadow Filter -->
+    <filter id="neonGlow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="12" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+  </defs>
+
+  <!-- Canvas Container with Rounded Squircle -->
+  <rect x="16" y="16" width="480" height="480" rx="96" fill="url(#bgGlow)" stroke="#1E293B" stroke-width="3" />
+
+  <!-- Background Isometric Grid Accents -->
+  <g opacity="0.15" stroke="#38BDF8" stroke-width="1.5" stroke-dasharray="4 4">
+    <line x1="80" y1="256" x2="432" y2="256" />
+    <line x1="256" y1="80" x2="256" y2="432" />
+    <circle cx="256" cy="256" r="160" />
+  </g>
+
+  <!-- 3D Cube Isometric Faces -->
+  <g filter="url(#neonGlow)">
+    <!-- Top Face -->
+    <polygon points="256,92 408,180 256,268 104,180" fill="url(#topFace)" stroke="url(#primaryStroke)" stroke-width="8" stroke-linejoin="round" />
+
+    <!-- Left Face -->
+    <polygon points="104,180 256,268 256,424 104,336" fill="url(#leftFace)" stroke="url(#primaryStroke)" stroke-width="8" stroke-linejoin="round" />
+
+    <!-- Right Face -->
+    <polygon points="408,180 256,268 256,424 408,336" fill="url(#rightFace)" stroke="url(#primaryStroke)" stroke-width="8" stroke-linejoin="round" />
+
+    <!-- Center Spine Line -->
+    <line x1="256" y1="268" x2="256" y2="424" stroke="url(#primaryStroke)" stroke-width="8" stroke-linecap="round" />
+  </g>
+
+  <!-- HTML Code Bracket Accents: Sleek Neon Cyber -->
+  <!-- Left Face "<" Bracket -->
+  <polyline points="196,290 148,318 196,346" stroke="url(#accentBracket)" stroke-width="9" stroke-linecap="round" stroke-linejoin="round" />
+
+  <!-- Right Face ">" Bracket -->
+  <polyline points="316,290 364,318 316,346" stroke="url(#accentBracket)" stroke-width="9" stroke-linecap="round" stroke-linejoin="round" />
+
+  <!-- Top Face: Central Web Node & Coordinate Rays -->
+  <g stroke="#38BDF8" stroke-width="3" opacity="0.6">
+    <line x1="256" y1="180" x2="256" y2="108" />
+    <line x1="256" y1="180" x2="380" y2="180" />
+    <line x1="256" y1="180" x2="132" y2="180" />
+  </g>
+  <circle cx="256" cy="180" r="14" fill="#38BDF8" />
+  <circle cx="256" cy="180" r="6" fill="#FFFFFF" />
+
+  <!-- Subtle Web Forward-Slash "/" Indicator at Top Right -->
+  <text x="242" y="468" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="20" font-weight="600" fill="#64748B" letter-spacing="4">INGETRAZO HTML</text>
+</svg>
